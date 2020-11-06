@@ -1,0 +1,4 @@
+Id,Name,Type,parent.id,X,Y
+1,Uno,router,,100,100
+2,Dos,server,,200,200
+3,Tres,file,2,300,300
