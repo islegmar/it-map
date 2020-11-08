@@ -1,3 +1,3 @@
-Id,Name,Type,parentID,X,Y,relatedID
-1,Uno,router,,100,100,2
-2,Dos,server,,300,300
+Id,Name,Type,parentID,X,Y,relatedID,_IP,_URL1,_URL2,_DESC
+1,Uno,router,,100,100,2,192.0.0.1,wwww.example.com,,jfsjdjshdds
+2,Dos,server,,100,200,,192.0.0.2,wwww.example.com,,jfsjdjshdds

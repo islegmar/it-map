@@ -1,30 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <script
-  src="https://code.jquery.com/jquery-3.5.1.min.js"
-  integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
-  crossorigin="anonymous"></script>
-  <script src = "https://d3js.org/d3.v4.min.js"></script>
-  <script src="js/PapaParse-4.6.0/papaparse.min.js"></script>
-  <script src="csv.js"></script>
 
+  <meta charset="utf-8">
+  <link href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">  
+  <script src="http://code.jquery.com/jquery-1.10.2.js"></script>  
+  <script src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script> 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/3.0.16/svg.min.js" integrity="sha512-p3Tp2zn+wApBreZCgRkmMwnfpN8MUPXzzOihXx7iGYXqE7t6m9drY8HeyMeeFuDWiTFKrGUrq3jpbT0vX6zY/Q==" crossorigin="anonymous"></script>
 
-  <!-- http://www.draw2d.org/draw2d_touch/jsdoc_6/#!/example/shape -->
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/shifty.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/raphael.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/jquery-1.10.2.min.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/jquery.autoresize.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/jquery-touch_punch.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/jquery.contextmenu.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/rgbcolor.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/canvg.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/Class.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/json2.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/lib/pathfinding-browser.min.js"></SCRIPT>
-  <SCRIPT src="http://www.draw2d.org/draw2d_touch/jsdoc_6/draw2d/src/draw2d.js"></SCRIPT>
+  <script src="js/PapaParse-4.6.0/papaparse.min.js"></script>
+  <script src="csv.js"></script>
   <style>
   image {
     z-index:10;
@@ -37,6 +22,32 @@
     stroke-color:#94d31b; 
     stroke-width:2;
   }
+  .canvas {
+    border:1px solid black;
+    background-color:white;
+    display:inline-block;
+  }
+  ._template {
+    display: none;
+  }
+  .canvas .header {
+    display: block;
+    border:1px solid black;
+    height : 20px;
+    background-color:grey;
+  }
+  .canvas .header .title {
+    font-weight: bold;
+    float : left;
+   }
+  .canvas .header .close {
+    border:1px solid black;
+    font-weight: bold;
+    float : right;
+  }
+  .clicable {
+    cursor: pointer;  
+  }
   </style>
 </head>
 
@@ -44,34 +55,141 @@
 <div>
   <input id="csv" class="csv" type='file' multiple='multiple'></input>
 </div>
-<!--
-<svg id="svg" width="600" height="600"></svg>
--->
-<div id="canvas"></div>
+
+<!-- Template for the canvas -->
+<div id="canvas" class="canvas _template">
+  <div class="header">
+    <div class="title"></div><span class="close clicable">X</span>
+  </div>
+  <div class="body">
+  </div>
+</div>
 </body>
 
 <script>
+function render(item, title, map, list) {
+  var $canvas=$('.canvas._template').clone(true, true).removeClass('_template');
+  $canvas.draggable().resizable();
+  $('body').append($canvas);
 
-// Return a search of items based on a condition
-function getItems(map, check) {
-  var found=[];
-
-  map.forEach(function(item) {
-    if ( check(item) ) {
-      found.push(item);
+  // Title with the path (breadcrumb)
+  var newTitle=[]
+  if ( !title ) {
+    newTitle.push('Root');
+    $canvas.find('.title').html('Root');
+  } else {
+    newTitle=title.slice()
+    var $titlePath=$('<span/>');
+    title.forEach(function(item) {
+      if ( $titlePath.children().length > 0 ) {
+       $("<span/>").appendTo($titlePath).html(" > ");
+      }
+      $("<span/>").appendTo($titlePath).html(item);
+    });
+    if ( item ) {
+      $("<span/>").appendTo($titlePath).html(item['Name']);
+      newTitle.push(item['Name']);
     }
+    $canvas.find('.title').append($titlePath);
+  }
+
+  // Drawn the nodes and vertexes
+  var draw = SVG().addTo($canvas[0]).size(800, 800);
+  list.forEach(function(item) {
+    var rect = draw.image('./img/' + item['Type'] + '.jpeg').attr({ 
+      width : 50,
+      height : 50,
+      x : item['X'], 
+      y : item['Y']
+    });
+    var text = draw.text(item['Name']).attr({ 
+      x : item['X'], 
+      y : item['Y'] + 50
+    });
+    var $rect=$(rect.node);
+
+    $rect.prop('id', 'node_' + item['Id']);
+    $rect.data('my', item);
+    $rect.data('title', title);
+    $rect.data('map', map);
+    rect.addClass('clicable');
+
+    // Show info with one click
+    $(rect.node).on('click', function(evt){
+      var item=$(this).data('my');
+      popup('info_' + item['Id'], item);
+    });
+
+    // If this item has children, we can expand it with double click
+    if ( map.filter(function(item2){
+      return item2['parentID'] && item2['parentID']==item['Id'];
+      }).length > 0 ) {
+     console.log(item['Name'] + ' has children');
+     $(rect.node).on('dblclick', {my : item, title : newTitle, map : map, list:list}, function(evt){
+       render(evt.data.my, evt.data.title, evt.data.map, evt.data.list);
+     });
+    } // children
+    
+    if ( item['relatedID'] ) {
+      map.filter(function(item2) {
+        return item2['Id']==item['relatedID'];
+      }).forEach(function(item2) {
+        var line = draw.line(item['X']+25, item['Y']+25, item2['X']+25, item2['Y']+25)
+          .stroke({ color:'red'})
+          .back();
+      });
+    } // related
+  }); // loop nodes
+}
+
+function popup(id, item) {
+  var $ele=$('#' + id);
+
+  if ( $ele.length >0 ) {
+    $ele.show();
+  } else {
+    $ele=$('.canvas._template').clone(true, true).removeClass('_template');
+    $ele.draggable().resizable();
+    $ele.prop('id', id).css('zIndex', 9999);
+    $ele.find('.title').html(item['Name']);
+    for ( key in item['info'] ) {
+      $ele.find('.body').append($('<div/>').html(item['info'][key]));
+    }
+    $('body').append($ele);
+  }
+
+  $ele.position({
+    my: "top left",
+    at: "right bottom",
+    of: "#node_" + item['Id']
   });
 
-  return found;
+  return $ele;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Configure template
+  $('.canvas').find('.close').click(function() {
+    $(this).closest('.canvas').hide();
+  });
+  /* NOTE : I don't know the reason but this is not working for 
+     dragable / resizable event if I add them to the clone elements
+   $('.canvas').draggable().resizable().find('.close').click(function() {
+    $(this).closest('.canvas').hide();
+  });*/
+
   $('input#csv').on('change', function(event) {
     eventCSVUpload(
       event, 
       function(item) {
         item['X']=parseInt(item['X']);
         item['Y']=parseInt(item['Y']);
+        item['info']={}
+        for ( key in item ) {
+          if ( key[0]==='_' && item[key] ) {
+            item['info'][key]=item[key];
+          }
+        }
       }, 
       function(data) {
       // Build the map
@@ -80,49 +198,9 @@ document.addEventListener('DOMContentLoaded', function() {
         map.push(item);
       });
 
-      // Draw the map
-      var canvas = new draw2d.Canvas("canvas");
-      //var svg = d3.select("#canvas").append("svg").attr("width", 800).attr("height", 800);
-      //var svg2=document.getElementById('svg');
-      var draw = SVG().addTo('#canvas').size(800, 800)
-
-      getItems(map, function(item) {
-        return item['parent.id']==null || item['parent.id'].length==0;
-      }).forEach(function(item) {
-        var rect = draw.image('./img/' + item['Type'] + '.jpeg').attr({ 
-          width : 50,
-          height : 50,
-          x : item['X'], 
-          y : item['Y']
-        });
-        var text = draw.text(item['Name']).attr({ 
-          x : item['X'], 
-          y : item['Y'] + 50
-        });
-   
-        if ( item['relatedID'] ) {
-          getItems(map, function(item2) {
-            return item2['Id']==item['relatedID'];
-          }).forEach(function(item2) {
-            var line = draw.line(item['X']+25, item['Y']+25, item2['X']+25, item2['Y']+25)
-              .stroke({ color:'red'})
-              .back();
-          });
-        }
-        /*
-        var node=new draw2d.shape.node.Start();
-        node.add(new draw2d.shape.basic.Label({text:"Test Label"}), new draw2d.layout.locator.TopLocator());
-        canvas.add( node,item['X'],item['Y']);
-
-        svg.append('rect')
-           .attr('x', item['X'])
-           .attr('y', item['Y'])
-           .attr('width', 40)
-           .attr('height', 40)
-           .attr('stroke', 'black')
-           .attr('fill', '#69a3b2');
-        */
-      });
+      render(null, null, map, map.filter(function(item) {
+        return !item['parentID'];
+      }));
     }, true);
   });
 });
